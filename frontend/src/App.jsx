@@ -2,9 +2,8 @@ import { ethers } from "ethers";
 import { useEffect, useState } from "react";
 import "./App.css";
 
-// Replace with your contract addresses and ABIs
-const myTokenAddress = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
-const nftAddress = "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853";
+const myTokenAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const nftAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 const myTokenAbi = [
   "function balanceOf(address owner) view returns (uint256)",
@@ -30,12 +29,15 @@ function App() {
   const [userAddress, setUserAddress] = useState("");
   const [tokenBalance, setTokenBalance] = useState("");
   const [mintPrice, setMintPrice] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, []); // Empty dependency array to run only once when the component mounts
+    if (isLoggedIn) {
+      fetchData();
+    }
+  }, [isLoggedIn]);
 
-  const fetchData = async () => {
+  const login = async () => {
     try {
       if (typeof window.ethereum === "undefined") {
         alert("MetaMask is not installed. Please install it to continue.");
@@ -47,6 +49,16 @@ function App() {
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
       setUserAddress(userAddress);
+      setIsLoggedIn(true); // Set the login state
+    } catch (error) {
+      console.error("Error logging in:", error);
+      alert("Login failed. Check the console for details.");
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
 
       // Fetch ERC20 token balance
       const myTokenContract = new ethers.Contract(myTokenAddress, myTokenAbi, provider);
@@ -65,11 +77,6 @@ function App() {
 
   const mintNFT = async () => {
     try {
-      if (typeof window.ethereum === "undefined") {
-        alert("MetaMask is not installed. Please install it to continue.");
-        return;
-      }
-
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
@@ -94,91 +101,30 @@ function App() {
       fetchData(); // Refresh data
     } catch (err) {
       console.error("Error minting NFT:", err);
-
-      if (err.data) {
-        try {
-          // Decode the custom error
-          const iface = new ethers.Interface(nftAbi);
-          const error = iface.parseError(err.data);
-          console.error("Custom Error:", error);
-
-          if (error.name === "InsufficientFunds") {
-            const { sender, sent, required } = error.args;
-            alert(
-              `Minting failed: Insufficient funds.\nSender: ${sender}\nSent: ${ethers.formatUnits(
-                sent
-              )} MTK\nRequired: ${ethers.formatUnits(required)} MTK`
-            );
-          } else {
-            alert(`Minting failed with custom error: ${error.name}`);
-          }
-        } catch (decodeError) {
-          console.error("Error decoding custom error:", decodeError);
-          alert("Minting failed: An unknown error occurred.");
-        }
-      } else {
-        alert("Minting failed: Check the console for details.");
-      }
+      alert("Minting failed: Check the console for details.");
     }
   };
 
   return (
     <div>
       <h1>MINT</h1>
-      <p>Your Address: {userAddress}</p>
-      <p>MyToken Balance: {tokenBalance} MTK</p>
-      <p>NFT Mint Price: {mintPrice} MTK</p>
 
-      <div>
-        <h2>Mint NFT</h2>
-        <button onClick={mintNFT}>Mint NFT</button>
-      </div>
+      {!isLoggedIn ? (
+        <button onClick={login}>Login with MetaMask</button>
+      ) : (
+        <>
+          <p>Your Address: {userAddress}</p>
+          <p>MyToken Balance: {tokenBalance} MTK</p>
+          <p>NFT Mint Price: {mintPrice} MTK</p>
+
+          <div>
+            <h2>Mint NFT</h2>
+            <button onClick={mintNFT}>Mint NFT</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 export default App;
-
-
-
-
-
-
-// import { useSDK } from "@metamask/sdk-react";
-// import { useState } from "react";
-// import './App.css';
-
-// function App() {
-//   const [account, setAccount] = useState();
-//   const { sdk, connected, chainId } = useSDK();
-//   // connecting, provider,
-
-//   const connect = async () => {
-//     try {
-//       const accounts = await sdk?.connect();
-//       setAccount(accounts?.[0]);
-//     } catch (err) {
-//       console.warn("failed to connect..", err);
-//     }
-//   };
-
-//   return (
-//     <div className="App">
-//       <button style={{ padding: 10, margin: 10 }} onClick={connect}>
-//         Connect
-//       </button>
-    
-//       {connected && (
-//         <div>
-//           <>
-//             {chainId && `Connected chain: ${chainId}`}
-//             <p></p>
-//             {account && `Connected account: ${account}`}
-//           </>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-// export default App
